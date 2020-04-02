@@ -1,0 +1,7 @@
+__*
+video/
+test/
+detectron2/build/
+.cache/
+.idea/
+track/tracker.py

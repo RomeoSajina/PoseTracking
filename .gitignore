@@ -5,6 +5,6 @@ detectron2/build/
 .cache/
 .idea/
 track/tracker.py
-detectron2/._github
-detectron2/._git
-nanonets_object_tracking/._git
+detectron2/.__github
+detectron2/.__git
+nanonets_object_tracking/.__git

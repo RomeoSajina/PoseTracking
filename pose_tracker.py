@@ -208,6 +208,7 @@ class PoseTracker:
         cv2.waitKey(1)
 
         #plt.imshow(visualized_output.get_image()[:, :, ::-1])
+        #plt.tight_layout()
         #plt.savefig("./res/detection.png")
 
         detections = predictions["instances"].get("pred_boxes").tensor.numpy()
@@ -348,6 +349,7 @@ class PoseTracker:
             t_curr_bbox = self.aligner.resize(t_curr_bbox)
 
             #plt.imshow(t_curr_bbox[:, :, ::-1])
+            #plt.tight_layout()
             #plt.savefig("./res/resized.png")
 
             #t_predictions, t_detections, t_out_scores = self.detect(t_curr_bbox)

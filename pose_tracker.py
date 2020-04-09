@@ -18,7 +18,7 @@ sys.path.insert(0, './nanonets_object_tracking') # Fix torch model loading
 
 # constants
 WINDOW_NAME = "PoseTracking"
-CROPPED_WINDOW = "Cropped_{0}"
+#CROPPED_WINDOW = "Cropped_{0}"
 
 
 class PoseTracker:
@@ -60,8 +60,7 @@ class PoseTracker:
 
         return None
 
-    @staticmethod
-    def _find_pose_within_tracker(_dets, _tracker):
+    def _find_pose_within_tracker(self, _dets, _tracker):
 
         assert len(_tracker["overlap_detections"]) > 0, "Overlap detection not found"
         assert len(_tracker["overlap_detections"]) < 2, "To many overlap detection found"
@@ -206,7 +205,10 @@ class PoseTracker:
         predictions, visualized_output = self.visualizer.run_on_image(frame)
 
         cv2.imshow("visualized_output", visualized_output.get_image()[:, :, ::-1])
-        cv2.waitKey()
+        cv2.waitKey(1)
+
+        #plt.imshow(visualized_output.get_image()[:, :, ::-1])
+        #plt.savefig("./res/detection.png")
 
         detections = predictions["instances"].get("pred_boxes").tensor.numpy()
         out_scores = predictions["instances"].get("scores").numpy()
@@ -276,7 +278,7 @@ class PoseTracker:
             prev_frame = frame
 
         cv2.destroyAllWindows()
-        cv2.waitKey()
+        cv2.waitKey(1)
 
     def do_pose_tracking(self, tracker_id=None):
 
@@ -305,11 +307,11 @@ class PoseTracker:
             prev_frame = frame
 
         cv2.destroyAllWindows()
-        cv2.waitKey()
+        cv2.waitKey(1)
 
     def track_pose(self, prev_image, curr_image, tracker_id=None):
         """
-        prev_image, curr_image = prev_frame, frame
+        prev_image, curr_image, tracker_id = prev_frame, frame, tracker_id
         """
         prev_dets = self.dets[self.frame_id - 1]
         curr_dets = self.dets[self.frame_id]
@@ -345,6 +347,9 @@ class PoseTracker:
 
             t_curr_bbox = self.aligner.resize(t_curr_bbox)
 
+            #plt.imshow(t_curr_bbox[:, :, ::-1])
+            #plt.savefig("./res/resized.png")
+
             #t_predictions, t_detections, t_out_scores = self.detect(t_curr_bbox)
 
             tmp_img = np.zeros_like(curr_image)
@@ -371,7 +376,7 @@ class PoseTracker:
             cv2.imshow("prev", prev_bbox)
             cv2.imshow("t_curr_bbox", t_curr_bbox)
             cv2.imshow("tmp_img", tmp_img)
-            cv2.waitKey()
+            cv2.waitKey(1)
             """
             #pred_keypoints = self._find_pose_within_tracker(curr_dets, target)
             #assert pred_keypoints is not None, "Pred_keypoints not found for tracker {0}".format(c_id)

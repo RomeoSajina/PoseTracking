@@ -1,8 +1,8 @@
-from deep_sort.deep_sort import nn_matching
-from deep_sort.deep_sort.tracker import Tracker 
-from deep_sort.application_util import preprocessing as prep
-from deep_sort.application_util import visualization
-from deep_sort.deep_sort.detection import Detection
+from .deep_sort.deep_sort import nn_matching
+from .deep_sort.deep_sort.tracker import Tracker
+from .deep_sort.application_util import preprocessing as prep
+from .deep_sort.application_util import visualization
+from .deep_sort.deep_sort.detection import Detection
 
 import numpy as np
 
@@ -37,18 +37,18 @@ class deepsort_rbc():
 		#loading this encoder is slow, should be done only once.
 		#self.encoder = generate_detections.create_box_encoder("deep_sort/resources/networks/mars-small128.ckpt-68577")		
 		if wt_path is not None:
-			self.encoder = torch.load(wt_path)			
+			self.encoder = torch.load(wt_path, map_location=torch.device('cpu'))
 		else:
-			self.encoder = torch.load('ckpts/model640.pt')
+			self.encoder = torch.load('ckpts/model640.pt', map_location=torch.device('cpu'))
 			
-		self.encoder = self.encoder.cuda()
+		self.encoder = self.encoder.cpu()
 		self.encoder = self.encoder.eval()
 		print("Deep sort model loaded")
 
 		self.metric = nn_matching.NearestNeighborDistanceMetric("cosine",.5 , 100)
 		self.tracker= Tracker(self.metric)
 
-		self.gaussian_mask = get_gaussian_mask().cuda()
+		self.gaussian_mask = get_gaussian_mask().cpu()
 
 
 		self.transforms = torchvision.transforms.Compose([ \
@@ -143,7 +143,7 @@ class deepsort_rbc():
 		#print(crop.shape,[xmin,ymin,xmax,ymax],frame.shape)
 
 		crop = self.transforms(crop)
-		crop = crop.cuda()
+		crop = crop.cpu()
 
 		gaussian_mask = self.gaussian_mask
 
@@ -169,7 +169,7 @@ class deepsort_rbc():
 		detections = np.array(out_boxes)
 		#features = self.encoder(frame, detections.copy())
 
-		processed_crops = self.pre_process(frame,detections).cuda()
+		processed_crops = self.pre_process(frame,detections).cpu()
 		processed_crops = self.gaussian_mask * processed_crops
 
 		features = self.encoder.forward_once(processed_crops)

@@ -23,5 +23,5 @@ Steps in pose tracking:
 ![](./res/resized.png)
 
 
-**Vizualize poses across frames**
+**Visualize poses across frames**
 ![](./res/3D.png)

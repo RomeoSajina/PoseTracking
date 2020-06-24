@@ -27,7 +27,8 @@ class PoseTracker:
 
         self.video = video
         self.config_file = "./detectron2/configs/COCO-Keypoints/keypoint_rcnn_R_101_FPN_3x.yaml"
-        self.opts = ["MODEL.WEIGHTS", "detectron2://COCO-Keypoints/keypoint_rcnn_R_101_FPN_3x/138363331/model_final_997cc7.pkl"]
+        #self.opts = ["MODEL.WEIGHTS", "detectron2://COCO-Keypoints/keypoint_rcnn_R_101_FPN_3x/138363331/model_final_997cc7.pkl"]
+        self.opts = ["MODEL.WEIGHTS", "./output/model_final.pth"]
 
         self.detection_config_file = "./detectron2/configs/COCO-Detection/faster_rcnn_R_101_FPN_3x.yaml"
         self.detection_opts = ["MODEL.WEIGHTS", "detectron2://COCO-Detection/faster_rcnn_R_101_FPN_3x/137851257/model_final_f6e8b1.pkl"]
@@ -310,6 +311,51 @@ class PoseTracker:
         cv2.destroyAllWindows()
         cv2.waitKey(1)
 
+    def select_and_run(self):
+
+        cap = cv2.VideoCapture(self.video)
+        self.init()
+
+        prev_frame = None
+        tracker_id = None
+
+        while cap.isOpened():
+
+            success, frame = cap.read()
+
+            if not success:
+                break
+
+            predictions, detections, out_scores = self.detect(frame)
+
+            tracked = self.track(frame, detections, out_scores)
+
+            self.dets[self.frame_id] = {"predictions": predictions, "detections": detections, "out_scores": out_scores, "tracked": tracked}
+
+            if tracker_id is not None and prev_frame is not None:
+                self.track_pose(prev_frame, frame, tracker_id)
+
+            image = self.add_boxes(frame)
+            cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
+            cv2.imshow(WINDOW_NAME, image)
+
+            if tracker_id is None:
+                print("(Frame: {0}) Hit 's' to enter tracker-id or 'q' to quit".format(self.frame_id))
+            k = cv2.waitKey(1000)
+
+            if tracker_id is None and k == ord("s"):
+                tracker_id = int(input("Enter tracker id: "))
+
+            elif k == ord("q"):
+                break
+
+            self.frame_id += 1
+
+            prev_frame = frame
+
+        cv2.destroyAllWindows()
+        cv2.waitKey(1)
+
     def track_pose(self, prev_image, curr_image, tracker_id=None):
         """
         prev_image, curr_image, tracker_id = prev_frame, frame, tracker_id
@@ -424,3 +470,112 @@ pt2.save()
 self = pt2
 """
 
+
+def demo():
+    from pose_comparator import find_and_compute_distance
+
+    pt = PoseTracker(video="./video/clipped_DSC_2354.MOV")
+    #pt.select_and_run()
+    #pt.save()
+    pt.load()
+    #pt.pose_visualizer.plot3D(7)
+
+    pt2 = PoseTracker(video="./video/clipped_2_DSC_2354.MOV")
+    #pt2.select_and_run()
+    #pt2.save()
+    pt2.load()
+    #pt2.pose_visualizer.plot3D(3)
+
+    poses_1 = pt.pose_visualizer.poses_for_id(7)
+    poses_2 = pt2.pose_visualizer.poses_for_id(3)
+
+    poses_1, poses_2, distances = find_and_compute_distance(poses_1, poses_2)
+
+    poses_1 = poses_1[:37]
+    poses_2 = poses_2[:37]
+
+    print("Total distance: " + str(np.array(distances).flatten().sum()))
+
+    PoseVisualizer.show_sequence(poses_1, poses_2, delay=4)
+
+
+
+"""
+def show_sequence(poses_1, poses_2):
+
+    from detectron2.data import MetadataCatalog
+    from detectron2.utils.visualizer import Visualizer
+    from image_aligner import ImageAligner
+    import time
+    import matplotlib as mpl
+    from detectron2.data.datasets.builtin_meta import COCO_PERSON_KEYPOINT_NAMES
+
+    def draw_pose(p, title, p_ref=None):
+        metadata = MetadataCatalog.get("keypoints_coco_2017_val")
+        image = np.zeros((800, 300, 1))
+        vis = Visualizer(image, metadata)
+
+        vis.draw_and_connect_keypoints(p)
+
+        if p_ref is not None:
+
+            interest_points = ('left_elbow', 'right_elbow', 'left_wrist', 'right_wrist', 'left_knee', 'right_knee', 'left_ankle', 'right_ankle')
+
+            for i in range(len(p)):
+
+                if COCO_PERSON_KEYPOINT_NAMES[i] not in interest_points:
+                    continue
+
+                k, r = p[i], p_ref[i]
+                #vis.draw_line([k[0], r[0]], [k[1], r[1]], color="red")
+
+                vis.output.ax.add_line(
+                    mpl.lines.Line2D(
+                        [k[0], r[0]],
+                        [k[1], r[1]],
+                        linewidth=1 * vis.output.scale,
+                        color=(0.0, 0.0, 1.0),
+                        linestyle="-",
+                        marker="."
+                    )
+                )
+
+        visimg = vis.output.get_image()
+        cv2.imshow(title, visimg)
+        cv2.waitKey(1)
+
+        return visimg
+
+    def align(p_1, p_2):
+
+        lhi = np.where(np.array(COCO_PERSON_KEYPOINT_NAMES) == "left_hip")[0][0]
+        rhi = np.where(np.array(COCO_PERSON_KEYPOINT_NAMES) == "right_hip")[0][0]
+
+        def find_midpoint(p1, p2):
+            return np.array([(p1[0]+p2[0])/2, (p1[1]+p2[1])/2])
+
+        p_1_m = find_midpoint(p_1[lhi], p_1[rhi])
+        p_2_m = find_midpoint(p_2[lhi], p_2[rhi])
+
+        t = p_1_m - p_2_m
+
+        p_2[:, :2] += t
+
+        return p_2
+
+    #aligner = ImageAligner(100)
+
+    for i in range(len(poses_1)):
+
+        draw_pose(poses_1[i], "Pose in sequence 1")
+        #draw_pose(poses_2[i], "Pose in sequence 2")
+
+        p_al = align(poses_1[i], poses_2[i])
+        draw_pose(p_al, "Pose in sequence 2 aligned", poses_1[i])
+
+        time.sleep(2)
+
+    cv2.destroyAllWindows()
+    cv2.waitKey(1)
+
+"""

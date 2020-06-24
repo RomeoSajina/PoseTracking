@@ -8,3 +8,6 @@ track/tracker.py
 detectron2/.__github
 detectron2/.__git
 nanonets_object_tracking/.__git
+dataset/coco/
+dataset/handball_other/
+output/

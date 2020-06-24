@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from detectron2.data.datasets.builtin_meta import COCO_PERSON_KEYPOINT_NAMES
 
 
 class ImageAligner:
@@ -69,6 +70,34 @@ class ImageAligner:
         assert resized.shape == (dim[1], dim[0], 3), "Image not right size"
 
         return resized
+
+    @staticmethod
+    def align_poses(poses_1, poses_2):
+        p_all_2 = []
+
+        for i in range(len(poses_1)):
+            p_2 = ImageAligner.align_pose(poses_1[i], poses_2[i])
+            p_all_2.append(p_2)
+
+        return np.array(p_all_2)
+
+    @staticmethod
+    def align_pose(p_1, p_2):
+
+        lhi = np.where(np.array(COCO_PERSON_KEYPOINT_NAMES) == "left_hip")[0][0]
+        rhi = np.where(np.array(COCO_PERSON_KEYPOINT_NAMES) == "right_hip")[0][0]
+
+        def find_midpoint(p1, p2):
+            return np.array([(p1[0]+p2[0])/2, (p1[1]+p2[1])/2])
+
+        p_1_m = find_midpoint(p_1[lhi], p_1[rhi])
+        p_2_m = find_midpoint(p_2[lhi], p_2[rhi])
+
+        t = p_1_m - p_2_m
+
+        p_2[:, :2] += t
+
+        return p_2
 
 """
     def resize_image(self, img, size=(500, 800)):

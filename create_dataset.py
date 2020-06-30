@@ -176,22 +176,22 @@ def fix_exported_json(file_name):
 
 
 ## RUN
+def demo():
+    v_1, o_v_1, v1_focus_id = "./video/DSC_2354.MOV", "./video/clipped_DSC_2354.MOV", 18
+    v_2, o_v_2, v2_focus_id = "./video/DSC_2354.MOV", "./video/clipped_2_DSC_2354.MOV", 5
 
-v_1, o_v_1, v1_focus_id = "./video/DSC_2354.MOV", "./video/clipped_DSC_2354.MOV", 18
-v_2, o_v_2, v2_focus_id = "./video/DSC_2354.MOV", "./video/clipped_2_DSC_2354.MOV", 5
+    clip(v_1, o_v_1)
+    clip(v_2, o_v_2)
 
-clip(v_1, o_v_1)
-clip(v_2, o_v_2)
+    create_images(o_v_1, v1_focus_id)
+    create_images(o_v_2, v2_focus_id)
 
-create_images(o_v_1, v1_focus_id)
-create_images(o_v_2, v2_focus_id)
+    fix_exported_json(file_name="dataset/handball.json")
 
-fix_exported_json(file_name="dataset/handball.json")
-
-#pt = PoseTracker(video=o_v_1)
-#pt = PoseTracker(video=o_v_2)
-#pt.run(track_pose=False)
-#pt.do_pose_tracking(tracker_id=18)
+    #pt = PoseTracker(video=o_v_1)
+    #pt = PoseTracker(video=o_v_2)
+    #pt.run(track_pose=False)
+    #pt.do_pose_tracking(tracker_id=18)
 
 
 """

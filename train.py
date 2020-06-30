@@ -102,12 +102,12 @@ def predict_random_from_dataset(sample_size=5, custom_dataset=None):
 """
     Execute functions
 """
+def demo():
+    show_random_from_dataset()
+    train()
+    predict_random_from_dataset()
 
-show_random_from_dataset()
-train()
-predict_random_from_dataset()
-
-predict_random_from_dataset(custom_dataset=[{"file_name": "./dataset/handball/full_hd/5_{0}.png".format(x)} for x in [10, 20, 30, 40, 50, 60, 70, 75]], sample_size=None)
+    predict_random_from_dataset(custom_dataset=[{"file_name": "./dataset/handball/full_hd/5_{0}.png".format(x)} for x in [10, 20, 30, 40, 50, 60, 70, 75]], sample_size=None)
 
 
 """

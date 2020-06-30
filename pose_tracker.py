@@ -23,12 +23,15 @@ WINDOW_NAME = "PoseTracking"
 
 class PoseTracker:
 
-    def __init__(self, video="./video/out.avi"):
+    def __init__(self, video="./video/out.avi", model_weights="./output/model_final.pth"):
 
         self.video = video
         self.config_file = "./detectron2/configs/COCO-Keypoints/keypoint_rcnn_R_101_FPN_3x.yaml"
-        #self.opts = ["MODEL.WEIGHTS", "detectron2://COCO-Keypoints/keypoint_rcnn_R_101_FPN_3x/138363331/model_final_997cc7.pkl"]
-        self.opts = ["MODEL.WEIGHTS", "./output/model_final.pth"]
+
+        if model_weights is None:
+            self.opts = ["MODEL.WEIGHTS", "detectron2://COCO-Keypoints/keypoint_rcnn_R_101_FPN_3x/138363331/model_final_997cc7.pkl"]
+        else:
+            self.opts = ["MODEL.WEIGHTS", model_weights]
 
         self.detection_config_file = "./detectron2/configs/COCO-Detection/faster_rcnn_R_101_FPN_3x.yaml"
         self.detection_opts = ["MODEL.WEIGHTS", "detectron2://COCO-Detection/faster_rcnn_R_101_FPN_3x/137851257/model_final_f6e8b1.pkl"]
@@ -205,8 +208,8 @@ class PoseTracker:
 
         predictions, visualized_output = self.visualizer.run_on_image(frame)
 
-        cv2.imshow("visualized_output", visualized_output.get_image()[:, :, ::-1])
-        cv2.waitKey(1)
+        #cv2.imshow("visualized_output", visualized_output.get_image()[:, :, ::-1])
+        #cv2.waitKey(1)
 
         #plt.imshow(visualized_output.get_image()[:, :, ::-1])
         #plt.tight_layout()

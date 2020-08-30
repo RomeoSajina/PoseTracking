@@ -31,6 +31,17 @@ pip install nonechucks==0.3.1
 pip install imgaug==0.2.8 --no-dependencies
 ```
 
+Finally, Detectron2 needs to be installed:
+```bash
+cd detectron2
+
+python -m pip install -e detectron2
+# Or if you are on macOS
+CC=clang CXX=clang++ python -m pip install -e detectron2
+```
+
+<br>
+<br>
 
 ## Pose tracking
 
@@ -60,6 +71,8 @@ Estimated pose for tracked player is saved, and at the end we can visualize pose
 We can compare poses of two different players executing the same action sequence, where we observe the first one as a template and evaluate the second one to find needed correction in order to correctly execute the action
 ![](./img/stick_figures_aligned.svg)
 
+<br>
+<br>
 
 
 ## Run on a custom video sequence
@@ -156,6 +169,8 @@ print("Total distance: " + str(np.array(distances).flatten().sum()))
 PoseVisualizer.show_sequence(poses_1, poses_2, delay=4)
 ```
 
+<br>
+<br>
 
 
 ## Training on a custom dataset

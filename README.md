@@ -4,9 +4,6 @@
 
 ## Instalation
 ```bash
-mkdir PoseTracking
-cd PoseTracking
-
 conda create --name pose-tracking python=3.7
 conda activate pose-tracking
 
@@ -29,16 +26,10 @@ pip install scikit_learn
 pip install nonechucks==0.3.1
 
 pip install imgaug==0.2.8 --no-dependencies
+
+pip install git+https://github.com/facebookresearch/detectron2.git
 ```
 
-Finally, Detectron2 needs to be installed:
-```bash
-cd detectron2
-
-python -m pip install -e detectron2
-# Or if you are on macOS
-CC=clang CXX=clang++ python -m pip install -e detectron2
-```
 
 <br>
 <br>

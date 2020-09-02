@@ -5,6 +5,7 @@ import pickle
 import os
 
 from detectron2.config import get_cfg
+from detectron2 import model_zoo
 
 from track.predictor import Visualization
 
@@ -26,14 +27,14 @@ class PoseTracker:
     def __init__(self, video="./video/out.avi", model_weights="./output/model_final.pth"):
 
         self.video = video
-        self.config_file = "./detectron2/configs/COCO-Keypoints/keypoint_rcnn_R_101_FPN_3x.yaml"
+        self.config_file = model_zoo.get_config_file("COCO-Keypoints/keypoint_rcnn_R_101_FPN_3x.yaml")
 
         if model_weights is None:
             self.opts = ["MODEL.WEIGHTS", "detectron2://COCO-Keypoints/keypoint_rcnn_R_101_FPN_3x/138363331/model_final_997cc7.pkl"]
         else:
             self.opts = ["MODEL.WEIGHTS", model_weights]
 
-        self.detection_config_file = "./detectron2/configs/COCO-Detection/faster_rcnn_R_101_FPN_3x.yaml"
+        self.detection_config_file = model_zoo.get_config_file("COCO-Detection/faster_rcnn_R_101_FPN_3x.yaml")
         self.detection_opts = ["MODEL.WEIGHTS", "detectron2://COCO-Detection/faster_rcnn_R_101_FPN_3x/137851257/model_final_f6e8b1.pkl"]
 
         self.tracking_model = "./nanonets_object_tracking/ckpts/model640.pt"
@@ -160,7 +161,7 @@ class PoseTracker:
 
         return np.array(out)
 
-    def add_boxes(self, image, frame_id=-1):
+    def add_boxes(self, image, frame_id=-1, show_poses=True, show_bbox=True, show_tracker=True):
 
         if frame_id == -1:
             frame_id = len(self.dets)
@@ -172,16 +173,17 @@ class PoseTracker:
 
             track_id, x0, y0, width, height, confidence = track
 
-            #Draw bbox from tracker.
-            cv2.rectangle(image, (x0, y0), (x0+width, y0+height), (255, 255, 255), 2)
-            cv2.putText(image, str(track_id), (x0, y0), 0, 5e-3 * 200, (0, 255, 0), 2)
+            if show_tracker: # Draw bbox from tracker.
+                cv2.rectangle(image, (x0, y0), (x0+width, y0+height), (255, 255, 255), 2)
+                cv2.putText(image, str(track_id), (x0, y0), 0, 5e-3 * 200, (0, 255, 0), 2)
 
-            #Draw bbox from detector. Just to compare.
-            for det in overlap_detections:
-                track_id, x0, y0, width, height, confidence = det
-                cv2.rectangle(image, (x0, y0), (x0+width, y0+height), (255, 255, 0), 2)
+            if show_bbox: # Draw bbox from detector. Just to compare.
+                for det in overlap_detections:
+                    track_id, x0, y0, width, height, confidence = det
+                    cv2.rectangle(image, (x0, y0), (x0+width, y0+height), (255, 255, 0), 2)
 
-        image = self.visualizer.draw_only_keypoints(image, info["predictions"]["instances"])
+        if show_poses:
+            image = self.visualizer.draw_only_keypoints(image, info["predictions"]["instances"])
 
         return image
 
@@ -339,7 +341,7 @@ class PoseTracker:
                 self.track_pose(prev_frame, frame, tracker_id)
 
             image = self.add_boxes(frame)
-            cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
+            #cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
             cv2.imshow(WINDOW_NAME, image)
 
             if tracker_id is None:
@@ -434,6 +436,32 @@ class PoseTracker:
 
             self.tracked_poses[self.frame_id].append({"id": p_id, "keypoints": pred_keypoints})
 
+    def play(self):
+
+        cap = cv2.VideoCapture(self.video)
+        self.init()
+        self.load()
+        frame_id = 1
+
+        while cap.isOpened() and frame_id < self.frame_id:
+
+            success, frame = cap.read()
+
+            if not success:
+                break
+
+            frame = self.add_boxes(image=frame, frame_id=frame_id, show_tracker=True, show_poses=True, show_bbox=False)
+
+            cv2.imshow(WINDOW_NAME, frame)
+
+            if cv2.waitKey(1) == 27: # Esc
+                break
+
+            frame_id += 1
+
+        cv2.destroyAllWindows()
+        cv2.waitKey(1)
+
     def add_padding(self, bbox):
         x0, y0, w, h = bbox
 
@@ -441,37 +469,6 @@ class PoseTracker:
             return 0 if val < 0 else val
 
         return nvl(x0 - self.crop_padding), nvl(y0 - self.crop_padding), w + self.crop_padding * 2, h + self.crop_padding * 2
-
-
-
-
-"""
-pt = PoseTracker()
-pt.run(track_pose=False)
-pt.do_pose_tracking(tracker_id=1)
-pt.pose_visualizer.plot3D(1)
-
-pt.run()
-pt.save()
-pt.load()
-self = pt
-
-self.pose_visualizer.plot3D(1)
-self.pose_visualizer.plot3D(4)
-self.pose_visualizer.plot3D(7)
-
-pt2 = PoseTracker(video="./video/DSC_2354.MOV")
-pt2.run(track_pose=False)
-pt2.save()
-
-pt2.do_pose_tracking(tracker_id=7)
-pt2.pose_visualizer.plot3D(7)
-
-pt2.run()
-pt2.load()
-pt2.save()
-self = pt2
-"""
 
 
 def demo():
@@ -500,85 +497,3 @@ def demo():
     print("Total distance: " + str(np.array(distances).flatten().sum()))
 
     PoseVisualizer.show_sequence(poses_1, poses_2, delay=4)
-
-
-
-"""
-def show_sequence(poses_1, poses_2):
-
-    from detectron2.data import MetadataCatalog
-    from detectron2.utils.visualizer import Visualizer
-    from image_aligner import ImageAligner
-    import time
-    import matplotlib as mpl
-    from detectron2.data.datasets.builtin_meta import COCO_PERSON_KEYPOINT_NAMES
-
-    def draw_pose(p, title, p_ref=None):
-        metadata = MetadataCatalog.get("keypoints_coco_2017_val")
-        image = np.zeros((800, 300, 1))
-        vis = Visualizer(image, metadata)
-
-        vis.draw_and_connect_keypoints(p)
-
-        if p_ref is not None:
-
-            interest_points = ('left_elbow', 'right_elbow', 'left_wrist', 'right_wrist', 'left_knee', 'right_knee', 'left_ankle', 'right_ankle')
-
-            for i in range(len(p)):
-
-                if COCO_PERSON_KEYPOINT_NAMES[i] not in interest_points:
-                    continue
-
-                k, r = p[i], p_ref[i]
-                #vis.draw_line([k[0], r[0]], [k[1], r[1]], color="red")
-
-                vis.output.ax.add_line(
-                    mpl.lines.Line2D(
-                        [k[0], r[0]],
-                        [k[1], r[1]],
-                        linewidth=1 * vis.output.scale,
-                        color=(0.0, 0.0, 1.0),
-                        linestyle="-",
-                        marker="."
-                    )
-                )
-
-        visimg = vis.output.get_image()
-        cv2.imshow(title, visimg)
-        cv2.waitKey(1)
-
-        return visimg
-
-    def align(p_1, p_2):
-
-        lhi = np.where(np.array(COCO_PERSON_KEYPOINT_NAMES) == "left_hip")[0][0]
-        rhi = np.where(np.array(COCO_PERSON_KEYPOINT_NAMES) == "right_hip")[0][0]
-
-        def find_midpoint(p1, p2):
-            return np.array([(p1[0]+p2[0])/2, (p1[1]+p2[1])/2])
-
-        p_1_m = find_midpoint(p_1[lhi], p_1[rhi])
-        p_2_m = find_midpoint(p_2[lhi], p_2[rhi])
-
-        t = p_1_m - p_2_m
-
-        p_2[:, :2] += t
-
-        return p_2
-
-    #aligner = ImageAligner(100)
-
-    for i in range(len(poses_1)):
-
-        draw_pose(poses_1[i], "Pose in sequence 1")
-        #draw_pose(poses_2[i], "Pose in sequence 2")
-
-        p_al = align(poses_1[i], poses_2[i])
-        draw_pose(p_al, "Pose in sequence 2 aligned", poses_1[i])
-
-        time.sleep(2)
-
-    cv2.destroyAllWindows()
-    cv2.waitKey(1)
-
-"""
